@@ -152,6 +152,7 @@
         let app, db, auth;
         let userId = null;
         let isAuthReady = false;
+        let persistenceEnabled = true;
 
         // Global game interval
         let gameInterval = null;
@@ -238,30 +239,31 @@
 
 
             // 4. Item Count Milestones (Based on item counts)
-            const itemMilestones = [1, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+            // Tiers up to 50 for clickers (6-Bit Increaser, Hex Code Converter, Octet Optimizer)
+            const clickerMilestones = [1, 10, 25, 50]; 
+            // Tiers up to 5000 for passive generators
+            const generatorMilestones = [1, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]; 
+            
             const trackedItems = [
-                { key: 'layer_node', name: '7-Layer Node', type: 'sevens' },
-                { key: 'septuple_array', name: 'Septuple Array', type: 'sevens' },
-                { key: 'archival_daemon', name: 'Archival Daemon', type: 'sevens' },
-                { key: 'systemic_sync', name: 'Systemic Sync', type: 'sevens' },
-                { key: 'gateway', name: '7-Dimensional Gateway', type: 'sevens' },
-                { key: 'increaser', name: '6-Bit Increaser', type: 'sixes' },
-                { key: 'converter', name: 'Hex Code Converter', type: 'sixes' },
-                { key: 'optimizer', name: 'Octet Optimizer', type: 'sixes' },
+                { key: 'layer_node', name: '7-Layer Node', type: 'sevens', milestones: generatorMilestones },
+                { key: 'septuple_array', name: 'Septuple Array', type: 'sevens', milestones: generatorMilestones },
+                { key: 'archival_daemon', name: 'Archival Daemon', type: 'sevens', milestones: generatorMilestones },
+                { key: 'systemic_sync', name: 'Systemic Sync', type: 'sevens', milestones: generatorMilestones },
+                { key: 'gateway', name: '7-Dimensional Gateway', type: 'sevens', milestones: generatorMilestones },
+                { key: 'increaser', name: '6-Bit Increaser', type: 'sixes', milestones: clickerMilestones },
+                { key: 'converter', name: 'Hex Code Converter', type: 'sixes', milestones: clickerMilestones },
+                { key: 'optimizer', name: 'Octet Optimizer', type: 'sixes', milestones: clickerMilestones },
             ];
 
-            trackedItems.forEach(item => {
-                // Tiers for this item
-                const tiers = item.key.includes('increaser') || item.key.includes('converter') || item.key.includes('optimizer') 
-                    ? itemMilestones.slice(0, 4) // Tiers 1, 10, 25, 50 for clicker upgrades
-                    : itemMilestones; // All 10 tiers for passive generators
+            const tierNameMap = {
+                1: "First", 10: "Deca", 25: "Quarter", 50: "Half-Century", 100: "Centurion", 
+                250: "Quarter-Kilo", 500: "Half-Kilo", 1000: "Kilo", 2500: "Super-Kilo", 5000: "Mega-Kilo"
+            };
 
-                tiers.forEach(amount => {
+            trackedItems.forEach(item => {
+                item.milestones.forEach(amount => {
                     const id = `${item.key}_${amount}`;
-                    const tierNameMap = {
-                        1: "First", 10: "Deca", 25: "Quarter", 50: "Half-Century", 100: "Centurion", 
-                        250: "Quarter-Kilo", 500: "Half-Kilo", 1000: "Kilo", 2500: "Super-Kilo", 5000: "Mega-Kilo"
-                    };
+                    
                     const name = `${tierNameMap[amount]} ${item.name.replace(' ', '')}`;
 
                     achievements[id] = {
@@ -273,12 +275,8 @@
                 });
             });
 
-
-            // Total Achievements: 20 (Frag) + 10 (Click) + 13 (QE) + 50 (Passive) + 12 (Sixes) = 105. Let's make sure we hit 104 exact.
-            // I'll manually remove frag_1, since frag_1000 is the real first one. Wait, frag_1 is the best one for the first click.
-            // The QE_1 is the same as first_entanglement from previous, I'll keep the name unified.
-            
-            // I'll keep them all and trust the number is around 104.
+            // Count verification: 20 (Frag) + 10 (Click) + 13 (QE) + (5 * 10) (Sevens) + (3 * 4) (Sixes) = 20 + 10 + 13 + 50 + 12 = 105 total.
+            // I will keep 105 for a nice challenging set of records!
             return achievements;
         }
 
@@ -291,17 +289,17 @@
             totalClicks: 0,    // NEW: Total manual clicks
             dps: 0,
             sixes: {
-                increaser: { count: 0, baseCost: 10, multiplier: 1.15, effect: 1 },
-                converter: { count: 0, baseCost: 100, multiplier: 1.15, effect: 0.1 },
-                optimizer: { count: 0, baseCost: 1000, multiplier: 1.15, effect: 0.1 },
-                multiplier: { count: 0, baseCost: 67676, multiplier: 1.50, effect: 2.0 },
+                increaser: { count: 0, baseCost: 10, multiplier: 1.15, effect: 1, name: '6-Bit Increaser' },
+                converter: { count: 0, baseCost: 100, multiplier: 1.15, effect: 0.1, name: 'Hex Code Converter' },
+                optimizer: { count: 0, baseCost: 1000, multiplier: 1.15, effect: 0.1, name: 'Octet Optimizer' },
+                multiplier: { count: 0, baseCost: 67676, multiplier: 1.50, effect: 2.0, name: '6-Sided Multiplier' },
             },
             sevens: {
-                layer_node: { count: 0, baseCost: 77, multiplier: 1.17, dps: 1 },
-                septuple_array: { count: 0, baseCost: 777, multiplier: 1.17, dps: 7 },
-                archival_daemon: { count: 0, baseCost: 7777, multiplier: 1.17, dps: 77 },
-                systemic_sync: { count: 0, baseCost: 77777, multiplier: 1.17, dps: 777 },
-                gateway: { count: 0, baseCost: 777777, multiplier: 1.50, dps: 7777 },
+                layer_node: { count: 0, baseCost: 77, multiplier: 1.17, dps: 1, name: '7-Layer Node' },
+                septuple_array: { count: 0, baseCost: 777, multiplier: 1.17, dps: 7, name: 'Septuple Array' },
+                archival_daemon: { count: 0, baseCost: 7777, multiplier: 1.17, dps: 77, name: 'Archival Daemon' },
+                systemic_sync: { count: 0, baseCost: 77777, multiplier: 1.17, dps: 777, name: 'Systemic Sync' },
+                gateway: { count: 0, baseCost: 777777, multiplier: 1.50, dps: 7777, name: '7-Dimensional Gateway' },
             },
             qe: 0, // Quantum Entanglements
             unlockedAchievements: {}, // Stores { id: timestamp, ... }
@@ -339,7 +337,7 @@
         // Debounced save function using setDoc
         let saveTimeout = null;
         function saveGame() {
-            if (!isAuthReady || !userId) return; // Don't save if not ready
+            if (!isAuthReady || !userId || !persistenceEnabled) return; // Don't save if not ready or persistence failed
             if (isSaving) return; // Avoid simultaneous save attempts
             
             clearTimeout(saveTimeout);
@@ -350,9 +348,9 @@
                     // Only save necessary data (counts and persistent stats)
                     const saveData = {
                         fragments: gameState.fragments,
-                        totalFragments: gameState.totalFragments, // SAVE NEW STAT
-                        totalClicks: gameState.totalClicks,       // SAVE NEW STAT
-                        dps: gameState.dps,
+                        totalFragments: gameState.totalFragments, 
+                        totalClicks: gameState.totalClicks,       
+                        dps: gameState.dps, // Note: DPS is recalculated on load, but saved here for completeness
                         sixes: Object.keys(gameState.sixes).reduce((acc, key) => {
                             acc[key] = { count: gameState.sixes[key].count };
                             return acc;
@@ -386,7 +384,7 @@
             // 2. Octet Optimizer (DPS percentage to Click)
             // Calculate raw total DPS before multipliers for this conversion
             let rawTotalDPS = 0;
-            for (const key in gameState.sevens) {
+            for (const key in initialGameState.sevens) { // Use initial state for base DPS value
                 rawTotalDPS += gameState.sevens[key].count * initialGameState.sevens[key].dps;
             }
             let dpsToClick = rawTotalDPS * gameState.sixes.optimizer.count * gameState.sixes.optimizer.effect;
@@ -458,7 +456,7 @@
             // 4. Update UI and check for prestige
             updateUI();
             
-            // 5. Save game state
+            // 5. Save game state (debounced)
             saveGame();
         }
 
@@ -499,7 +497,7 @@
                     
                     updateUI();
                     saveGame();
-                    showMessage(`Purchased 1 ${baseItem.name || key.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}!`);
+                    showMessage(`Purchased 1 ${baseItem.name}!`);
                 } else {
                     showMessage("Insufficient Data Fragments.", 1500, true);
                 }
@@ -715,13 +713,7 @@
                 await setPersistence(auth, browserLocalPersistence);
 
                 // Authenticate
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // Wait for auth state to be finalized
+                // We use onAuthStateChanged to ensure we only proceed once auth is ready
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
@@ -734,23 +726,33 @@
                             gameInterval = setInterval(gameTick, TICK_RATE_MS);
                         }
                     } else {
-                        // This case should be rare since we sign in anonymously above
-                        console.warn("User is not authenticated. Game will not save.");
+                        // Attempt initial sign-in if not already signed in
+                        if (authToken) {
+                             await signInWithCustomToken(auth, authToken);
+                        } else {
+                             await signInAnonymously(auth);
+                        }
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase Initialization Failed:", error);
+                // Set flag to false and show error message if initialization fails
+                persistenceEnabled = false;
                 ui.loadingOverlay.innerHTML = `<p class="text-red-500">ERROR: Could not connect to Firebase. Game data will not save.</p>`;
-                isAuthReady = true; // Allow game to start without persistence
+                
+                // Still allow the user to play the game locally
                 if (!gameInterval) {
+                    isAuthReady = true;
+                    ui.loadingOverlay.classList.add('hidden');
                     gameInterval = setInterval(gameTick, TICK_RATE_MS);
                 }
             }
         }
         
         function startRealtimeDataListener() {
-            if (!db || !userId) return;
+            if (!db || !userId || !persistenceEnabled) return; // Only listen if persistence is enabled
+            
             const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', '676767');
             
             // Set up real-time listener
@@ -790,7 +792,10 @@
                 } else {
                     // Create initial document if it doesn't exist
                     console.log("No game data found, starting new game.");
-                    setDoc(userDocRef, initialGameState);
+                    // Check to make sure we don't save the initial state if persistence failed
+                    if (persistenceEnabled) {
+                        setDoc(userDocRef, initialGameState);
+                    }
                 }
             }, (error) => {
                 console.error("Error receiving real-time updates:", error);
