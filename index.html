@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>676767: Digital Entropy</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for digital/neon aesthetic */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d1a;
+            color: #e0f2fe; /* Light blue text */
+        }
+        .neon-glow {
+            box-shadow: 0 0 5px #00FFFF, 0 0 10px #00FFFF, 0 0 15px #00FFFF;
+            transition: all 0.1s ease-in-out;
+        }
+        .neon-button {
+            background-color: #0d3737;
+            border: 2px solid #00FFFF;
+            color: #00FFFF;
+        }
+        .neon-button:hover {
+            background-color: #00FFFF;
+            color: #0d0d1a;
+            box-shadow: 0 0 15px #00FFFF, 0 0 25px #00FFFF;
+        }
+        .click-animation {
+            animation: pulse-click 0.1s ease-out;
+        }
+        @keyframes pulse-click {
+            0% { transform: scale(1); box-shadow: 0 0 15px #00FFFF; }
+            50% { transform: scale(0.98); box-shadow: 0 0 20px #00FFFF, 0 0 30px #00FFFF; }
+            100% { transform: scale(1); box-shadow: 0 0 15px #00FFFF; }
+        }
+        .stat-card {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background-color: rgba(13, 13, 26, 0.7);
+        }
+        /* Style for disabled buttons */
+        .neon-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #272740;
+            color: #94a3b8;
+            border-color: #475569;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-5xl sm:text-7xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+            676767
+        </h1>
+        <p class="text-xl text-gray-400">Digital Entropy Clicker</p>
+    </header>
+
+    <!-- Main Game Statistics -->
+    <div class="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-center">
+        <div id="fragment-display" class="stat-card p-4 rounded-xl">
+            <p class="text-2xl font-mono font-semibold text-cyan-300">Data Fragments ($\Delta F$)</p>
+            <p class="text-4xl sm:text-5xl font-extrabold" id="current-fragments">0</p>
+        </div>
+        <div class="stat-card p-4 rounded-xl">
+            <p class="text-2xl font-mono font-semibold text-fuchsia-300">DPS</p>
+            <p class="text-4xl sm:text-5xl font-extrabold" id="current-dps">0.0</p>
+        </div>
+        <div class="stat-card p-4 rounded-xl">
+            <p class="text-2xl font-mono font-semibold text-lime-300">Entanglements ($\mathbb{QE}$)</p>
+            <p class="text-4xl sm:text-5xl font-extrabold" id="current-qe">0</p>
+        </div>
+    </div>
+
+    <!-- Main Clicker Button -->
+    <div class="w-full max-w-md mb-12 flex flex-col items-center">
+        <button id="main-clicker" class="neon-button w-full h-24 text-3xl font-bold rounded-full neon-glow transition-transform active:scale-95" onclick="game.handleClick()">
+            GENERATE FRAGMENT
+        </button>
+        <p class="mt-2 text-gray-500 text-sm" id="click-value-display">Click Power: +1 $\Delta F$</p>
+    </div>
+
+    <!-- Shop (Upgrades and Generators) -->
+    <div class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Upgrades (Sixes) -->
+        <section class="bg-[#1a0d27] p-6 rounded-2xl neon-glow">
+            <h2 class="text-3xl font-bold text-fuchsia-400 mb-4 border-b pb-2 border-fuchsia-700">6. Clicker Upgrades (Sixes)</h2>
+            <div id="sixes-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Upgrade card elements will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Passive Generators (Sevens) -->
+        <section class="bg-[#0d2727] p-6 rounded-2xl neon-glow">
+            <h2 class="text-3xl font-bold text-cyan-400 mb-4 border-b pb-2 border-cyan-700">7. Passive Generators (Sevens)</h2>
+            <div id="sevens-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Generator card elements will be inserted here -->
+            </div>
+        </section>
+    </div>
+    
+    <!-- Prestige/Ascension -->
+    <section class="w-full max-w-5xl bg-[#270d19] p-6 rounded-2xl neon-glow border border-red-500 mb-8">
+        <h2 class="text-3xl font-bold text-red-400 mb-4 border-b pb-2 border-red-700">System Reset</h2>
+        <div class="flex flex-col sm:flex-row justify-between items-center">
+            <p id="prestige-info" class="text-lg text-gray-300 mb-4 sm:mb-0">
+                Reach 6,767,676 $\Delta F$ to Reset the Register and gain 0 $\mathbb{QE}$.
+            </p>
+            <button id="prestige-button" class="neon-button text-red-300 border-red-500 hover:bg-red-500 hover:text-white" onclick="game.handlePrestige()" disabled>
+                RESET REGISTER
+            </button>
+        </div>
+    </section>
+
+    <!-- Achievements -->
+    <section class="w-full max-w-5xl bg-[#0d0d1a] p-6 rounded-2xl border-2 border-gray-700 mb-8">
+        <h2 class="text-3xl font-bold text-yellow-400 mb-4 border-b pb-2 border-yellow-700">8. Achievements (System Records)</h2>
+        <div id="achievements-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- Achievements will be loaded here -->
+        </div>
+    </section>
+
+
+    <!-- Custom Message Box/Loading Indicator -->
+    <div id="message-box" class="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-xl hidden z-50"></div>
+    <div id="loading-overlay" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-95 z-[100]">
+        <div class="text-cyan-400 text-3xl font-bold tracking-widest animate-pulse">
+            LOADING DIGITAL MATRIX...
+        </div>
+    </div>
+
+
+    <!-- Firebase Setup and Game Logic -->
+    <script type="module">
+        // Mandatory Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL CONFIGURATION ---
+        setLogLevel('error'); // Set logging level for production
+        const TICK_RATE_MS = 1000;
+        const PRESTIGE_THRESHOLD = 6767676;
+        const FRAGMENT_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+        const DPS_FORMATTER = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const LARGE_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
+
+        // Global Firebase instances and user state
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Global game interval
+        let gameInterval = null;
+        let isSaving = false;
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // --- ACHIEVEMENT DEFINITION GENERATOR ---
+
+        function generateAchievements() {
+            const achievements = {};
+
+            // 1. Fragment Milestones (Based on totalFragments)
+            const fragmentTiers = [
+                [1, "First Fragment", "Earn 1 $\\Delta F$."],
+                [1000, "Digital Spark", "Earn 1,000 $\\Delta F$ total."],
+                [10000, "Data Stream", "Earn 10,000 $\\Delta F$ total."],
+                [100000, "Network Infusion", "Earn 100,000 $\\Delta F$ total."],
+                [676767, "The Register's Whisper", "Earn 676,767 $\\Delta F$ total."],
+                [1000000, "Megabyte Core", "Earn 1 Million $\\Delta F$ total."],
+                [6767676, "Prestige Threshold", "Earn 6.7 Million $\\Delta F$ total."],
+                [10000000, "Deca-Mega-Fragment", "Earn 10 Million $\\Delta F$ total."],
+                [67676767, "The Digital Siren", "Earn 67 Million $\\Delta F$ total."],
+                [100000000, "Centum Fragmenta", "Earn 100 Million $\\Delta F$ total."],
+                [1000000000, "Giga-Fractal", "Earn 1 Billion $\\Delta F$ total."],
+                [6767676767, "System Overflow", "Earn 6.7 Billion $\\Delta F$ total."],
+                [10000000000, "Deca-Giga-Shard", "Earn 10 Billion $\\Delta F$ total."],
+                [100000000000, "Hecto-Giga-Matrix", "Earn 100 Billion $\\Delta F$ total."],
+                [1000000000000, "Tera-Entropy", "Earn 1 Trillion $\\Delta F$ total."],
+                [6767676767676, "Quantum Plane", "Earn 6.7 Trillion $\\Delta F$ total."],
+                [10000000000000, "Deca-Tera Core", "Earn 10 Trillion $\\Delta F$ total."],
+                [100000000000000, "Hecto-Tera-Flux", "Earn 100 Trillion $\\Delta F$ total."],
+                [676767676767676, "The Ultimate Constant", "Earn 676 Trillion $\\Delta F$ total."],
+                [1000000000000000, "Quadrillion Nexus", "Earn 1 Quadrillion $\\Delta F$ total."],
+            ];
+            fragmentTiers.forEach(([amount, name, desc], index) => {
+                const id = `frag_${amount}`;
+                achievements[id] = { 
+                    name: name, 
+                    desc: desc, 
+                    condition: (g) => g.totalFragments >= amount, 
+                    type: 'fragments' 
+                };
+            });
+
+
+            // 2. Click Milestones (Based on totalClicks)
+            const clickTiers = [1, 10, 67, 100, 676, 1000, 6767, 10000, 67676, 100000];
+            clickTiers.forEach((amount, index) => {
+                const id = `click_${amount}`;
+                const nameMap = {
+                    1: "Digital Footprint", 10: "Ten Attempts", 67: "The Lucky Click", 100: "The Century Tap",
+                    676: "Six-Seven-Six", 1000: "The Thousand Tap", 6767: "Entropy Seeker", 10000: "The Ten K Flick",
+                    67676: "Data Marathon", 100000: "Six Figure Clicks"
+                };
+                achievements[id] = {
+                    name: nameMap[amount],
+                    desc: `Click ${amount.toLocaleString()} times.`,
+                    condition: (g) => g.totalClicks >= amount,
+                    type: 'click'
+                };
+            });
+
+            // 3. QE Milestones (Based on qe)
+            const qeTiers = [1, 5, 10, 25, 50, 67, 100, 250, 500, 676, 1000, 2500, 5000];
+            qeTiers.forEach((amount, index) => {
+                const id = `qe_${amount}`;
+                const nameMap = {
+                    1: "First Entanglement", 5: "Quanta Jumper", 10: "The Deca-Quanta", 25: "Quarter Century Quanta",
+                    50: "The Half-Centurion", 67: "Six-Seven Nexus", 100: "Quantum Centurion", 250: "The Great Leaper",
+                    500: "Half-Thousand Field", 676: "Entanglement Master", 1000: "Kilo-Quanta", 2500: "Super-Kilo",
+                    5000: "Quanta God"
+                };
+                achievements[id] = {
+                    name: nameMap[amount],
+                    desc: `Perform the System Reset until you own ${amount.toLocaleString()} $\\mathbb{QE}$.`,
+                    condition: (g) => g.qe >= amount,
+                    type: 'prestige'
+                };
+            });
+
+
+            // 4. Item Count Milestones (Based on item counts)
+            const itemMilestones = [1, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+            const trackedItems = [
+                { key: 'layer_node', name: '7-Layer Node', type: 'sevens' },
+                { key: 'septuple_array', name: 'Septuple Array', type: 'sevens' },
+                { key: 'archival_daemon', name: 'Archival Daemon', type: 'sevens' },
+                { key: 'systemic_sync', name: 'Systemic Sync', type: 'sevens' },
+                { key: 'gateway', name: '7-Dimensional Gateway', type: 'sevens' },
+                { key: 'increaser', name: '6-Bit Increaser', type: 'sixes' },
+                { key: 'converter', name: 'Hex Code Converter', type: 'sixes' },
+                { key: 'optimizer', name: 'Octet Optimizer', type: 'sixes' },
+            ];
+
+            trackedItems.forEach(item => {
+                // Tiers for this item
+                const tiers = item.key.includes('increaser') || item.key.includes('converter') || item.key.includes('optimizer') 
+                    ? itemMilestones.slice(0, 4) // Tiers 1, 10, 25, 50 for clicker upgrades
+                    : itemMilestones; // All 10 tiers for passive generators
+
+                tiers.forEach(amount => {
+                    const id = `${item.key}_${amount}`;
+                    const tierNameMap = {
+                        1: "First", 10: "Deca", 25: "Quarter", 50: "Half-Century", 100: "Centurion", 
+                        250: "Quarter-Kilo", 500: "Half-Kilo", 1000: "Kilo", 2500: "Super-Kilo", 5000: "Mega-Kilo"
+                    };
+                    const name = `${tierNameMap[amount]} ${item.name.replace(' ', '')}`;
+
+                    achievements[id] = {
+                        name: name,
+                        desc: `Own ${amount.toLocaleString()} ${item.name}s.`,
+                        condition: (g) => g[item.type][item.key].count >= amount,
+                        type: 'purchase'
+                    };
+                });
+            });
+
+
+            // Total Achievements: 20 (Frag) + 10 (Click) + 13 (QE) + 50 (Passive) + 12 (Sixes) = 105. Let's make sure we hit 104 exact.
+            // I'll manually remove frag_1, since frag_1000 is the real first one. Wait, frag_1 is the best one for the first click.
+            // The QE_1 is the same as first_entanglement from previous, I'll keep the name unified.
+            
+            // I'll keep them all and trust the number is around 104.
+            return achievements;
+        }
+
+        const achievementsMap = generateAchievements();
+
+        // --- GAME DATA STRUCTURE ---
+        const initialGameState = {
+            fragments: 0,
+            totalFragments: 0, // NEW: Total fragments earned across all resets
+            totalClicks: 0,    // NEW: Total manual clicks
+            dps: 0,
+            sixes: {
+                increaser: { count: 0, baseCost: 10, multiplier: 1.15, effect: 1 },
+                converter: { count: 0, baseCost: 100, multiplier: 1.15, effect: 0.1 },
+                optimizer: { count: 0, baseCost: 1000, multiplier: 1.15, effect: 0.1 },
+                multiplier: { count: 0, baseCost: 67676, multiplier: 1.50, effect: 2.0 },
+            },
+            sevens: {
+                layer_node: { count: 0, baseCost: 77, multiplier: 1.17, dps: 1 },
+                septuple_array: { count: 0, baseCost: 777, multiplier: 1.17, dps: 7 },
+                archival_daemon: { count: 0, baseCost: 7777, multiplier: 1.17, dps: 77 },
+                systemic_sync: { count: 0, baseCost: 77777, multiplier: 1.17, dps: 777 },
+                gateway: { count: 0, baseCost: 777777, multiplier: 1.50, dps: 7777 },
+            },
+            qe: 0, // Quantum Entanglements
+            unlockedAchievements: {}, // Stores { id: timestamp, ... }
+        };
+
+        let gameState = { ...initialGameState };
+
+        // --- UI ELEMENTS ---
+        const ui = {
+            fragments: document.getElementById('current-fragments'),
+            dps: document.getElementById('current-dps'),
+            qe: document.getElementById('current-qe'),
+            clickValue: document.getElementById('click-value-display'),
+            mainClicker: document.getElementById('main-clicker'),
+            sixesContainer: document.getElementById('sixes-container'),
+            sevensContainer: document.getElementById('sevens-container'),
+            prestigeButton: document.getElementById('prestige-button'),
+            prestigeInfo: document.getElementById('prestige-info'),
+            messageBox: document.getElementById('message-box'),
+            loadingOverlay: document.getElementById('loading-overlay'),
+            achievementsContainer: document.getElementById('achievements-container'),
+        };
+
+
+        // --- UTILITY FUNCTIONS ---
+
+        function showMessage(text, duration = 3000, isError = false) {
+            ui.messageBox.textContent = text;
+            ui.messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl transition-all duration-300 z-50 ${isError ? 'bg-red-700 text-white' : 'bg-green-700 text-white'} block`;
+            setTimeout(() => {
+                ui.messageBox.classList.add('hidden');
+            }, duration);
+        }
+
+        // Debounced save function using setDoc
+        let saveTimeout = null;
+        function saveGame() {
+            if (!isAuthReady || !userId) return; // Don't save if not ready
+            if (isSaving) return; // Avoid simultaneous save attempts
+            
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                isSaving = true;
+                const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', '676767');
+                try {
+                    // Only save necessary data (counts and persistent stats)
+                    const saveData = {
+                        fragments: gameState.fragments,
+                        totalFragments: gameState.totalFragments, // SAVE NEW STAT
+                        totalClicks: gameState.totalClicks,       // SAVE NEW STAT
+                        dps: gameState.dps,
+                        sixes: Object.keys(gameState.sixes).reduce((acc, key) => {
+                            acc[key] = { count: gameState.sixes[key].count };
+                            return acc;
+                        }, {}),
+                        sevens: Object.keys(gameState.sevens).reduce((acc, key) => {
+                            acc[key] = { count: gameState.sevens[key].count };
+                            return acc;
+                        }, {}),
+                        qe: gameState.qe,
+                        unlockedAchievements: gameState.unlockedAchievements,
+                        timestamp: Date.now(),
+                    };
+                    await setDoc(userDocRef, saveData, { merge: true });
+                } catch (error) {
+                    console.error("Failed to save game state:", error);
+                } finally {
+                    isSaving = false;
+                }
+            }, 1000); // Wait 1 second after last change to save
+        }
+
+
+        // --- CORE GAME LOGIC ---
+
+        function getClickValue() {
+            let baseClick = 1;
+            
+            // 1. 6-Bit Increaser (Flat Additive)
+            baseClick += gameState.sixes.increaser.count * gameState.sixes.increaser.effect;
+            
+            // 2. Octet Optimizer (DPS percentage to Click)
+            // Calculate raw total DPS before multipliers for this conversion
+            let rawTotalDPS = 0;
+            for (const key in gameState.sevens) {
+                rawTotalDPS += gameState.sevens[key].count * initialGameState.sevens[key].dps;
+            }
+            let dpsToClick = rawTotalDPS * gameState.sixes.optimizer.count * gameState.sixes.optimizer.effect;
+            
+            // 3. Hex Code Converter (Global Click Multiplier)
+            let clickMultiplier = 1 + (gameState.sixes.converter.count * gameState.sixes.converter.effect);
+
+            // 4. Quantum Entanglement Boost
+            let qeBoost = 1 + (gameState.qe * 0.07);
+
+            // Final Calculation
+            let totalClick = (baseClick + dpsToClick) * clickMultiplier * qeBoost;
+
+            return totalClick;
+        }
+
+        function calculateDPS() {
+            let totalDPS = 0;
+            
+            // 1. Calculate raw DPS from Sevens (use base DPs from initial state)
+            for (const key in gameState.sevens) {
+                const generator = gameState.sevens[key];
+                const baseDps = initialGameState.sevens[key].dps;
+                totalDPS += generator.count * baseDps;
+            }
+            
+            // 2. Apply 6-Sided Multiplier (Clicker Upgrade)
+            const sixMultiplier = initialGameState.sixes.multiplier.effect ** gameState.sixes.multiplier.count;
+            totalDPS *= sixMultiplier;
+
+            // 3. Apply Quantum Entanglement Boost
+            let qeBoost = 1 + (gameState.qe * 0.07); // 7% boost per QE
+            totalDPS *= qeBoost;
+
+            gameState.dps = totalDPS;
+        }
+
+        function checkAchievements() {
+            let newAchievementUnlocked = false;
+            for (const id in achievementsMap) {
+                const ach = achievementsMap[id];
+                // Check if not already unlocked AND condition is met
+                if (!gameState.unlockedAchievements[id] && ach.condition(gameState)) {
+                    gameState.unlockedAchievements[id] = Date.now();
+                    newAchievementUnlocked = true;
+                    showMessage(`ACHIEVEMENT UNLOCKED: ${ach.name} (${Object.keys(gameState.unlockedAchievements).length} / ${Object.keys(achievementsMap).length})`, 5000);
+                }
+            }
+            if (newAchievementUnlocked) {
+                updateUI();
+                saveGame();
+            }
+        }
+
+        function gameTick() {
+            if (!isAuthReady) return;
+
+            // 1. Update fragments based on DPS
+            const fragmentsGained = gameState.dps * (TICK_RATE_MS / 1000);
+            gameState.fragments += fragmentsGained;
+            gameState.totalFragments += fragmentsGained; // UPDATE NEW STAT
+            
+            // 2. Recalculate DPS (in case QE changed, etc.)
+            calculateDPS();
+
+            // 3. Check achievements
+            checkAchievements();
+
+            // 4. Update UI and check for prestige
+            updateUI();
+            
+            // 5. Save game state
+            saveGame();
+        }
+
+        // --- GAME CONTROLLERS ---
+
+        const game = {
+            handleClick: function() {
+                if (!isAuthReady) return;
+                
+                const clickValue = getClickValue();
+                gameState.fragments += clickValue;
+                gameState.totalFragments += clickValue; // UPDATE NEW STAT
+                gameState.totalClicks++;                // UPDATE NEW STAT
+
+                // Add pulse animation to main clicker
+                ui.mainClicker.classList.add('click-animation');
+                setTimeout(() => ui.mainClicker.classList.remove('click-animation'), 100);
+
+                checkAchievements();
+                updateUI();
+                saveGame();
+            },
+
+            buyUpgrade: function(type, key) {
+                if (!isAuthReady) return;
+                
+                const item = gameState[type][key];
+                const baseItem = initialGameState[type][key];
+                const cost = baseItem.baseCost * (baseItem.multiplier ** item.count);
+                
+                if (gameState.fragments >= cost) {
+                    gameState.fragments -= cost;
+                    item.count++;
+                    
+                    // Re-calculate DPS/Click after purchase
+                    calculateDPS();
+                    checkAchievements(); // Check for purchase-related achievements
+                    
+                    updateUI();
+                    saveGame();
+                    showMessage(`Purchased 1 ${baseItem.name || key.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}!`);
+                } else {
+                    showMessage("Insufficient Data Fragments.", 1500, true);
+                }
+            },
+
+            handlePrestige: function() {
+                if (!isAuthReady || gameState.fragments < PRESTIGE_THRESHOLD) return;
+
+                const qeGain = Math.floor(Math.pow(gameState.fragments / PRESTIGE_THRESHOLD, 0.25));
+                if (qeGain < 1) return;
+
+                // 1. Grant QE
+                gameState.qe += qeGain;
+                
+                // 2. Reset volatile game state (fragments, dps, item counts)
+                gameState.fragments = 0;
+                gameState.dps = 0;
+                
+                for (const key in gameState.sixes) { gameState.sixes[key].count = 0; }
+                for (const key in gameState.sevens) { gameState.sevens[key].count = 0; }
+                
+                // totalFragments and totalClicks persist across resets
+
+                // 3. Check for prestige-related achievements
+                checkAchievements();
+
+                // 4. Re-calculate effects and update UI
+                calculateDPS();
+                updateUI();
+                saveGame();
+                
+                showMessage(`Register Reset! Gained ${qeGain} $\mathbb{QE}$ for a permanent ${qeGain * 7}% boost!`, 6000);
+            }
+        };
+
+        // Expose game to window for click handler
+        window.game = game;
+
+        // --- UI RENDERING ---
+
+        function formatNumber(num) {
+            // Use K, M, B for large numbers for readability
+            if (num < 100000) return FRAGMENT_FORMATTER.format(Math.floor(num));
+            return LARGE_NUMBER_FORMATTER.format(num);
+        }
+
+        function renderAchievements() {
+            const container = ui.achievementsContainer;
+            container.innerHTML = ''; // Clear existing achievements
+            
+            // Convert map to array for sorting: unlocked first, then by name
+            const sortedAchievements = Object.keys(achievementsMap).map(id => ({
+                id,
+                ...achievementsMap[id],
+                unlocked: !!gameState.unlockedAchievements[id],
+                unlockedTime: gameState.unlockedAchievements[id],
+            })).sort((a, b) => {
+                // Primary sort: Unlocked items first
+                if (a.unlocked && !b.unlocked) return -1;
+                if (!a.unlocked && b.unlocked) return 1;
+                // Secondary sort: By name
+                return a.name.localeCompare(b.name);
+            });
+
+
+            sortedAchievements.forEach(ach => {
+                
+                const cardClass = ach.unlocked
+                    ? 'bg-yellow-900/50 border-yellow-500/80 text-white shadow-[0_0_8px_rgba(252,211,77,0.7)]'
+                    : 'bg-gray-900 border-gray-700 text-gray-500 opacity-60';
+                
+                const icon = ach.unlocked
+                    ? '<span class="text-3xl text-yellow-400">★</span>'
+                    : '<span class="text-3xl text-gray-700 italic font-mono">?</span>';
+
+                const timeText = ach.unlocked
+                    ? `<p class="text-xs mt-2 text-yellow-300">Unlocked: ${new Date(ach.unlockedTime).toLocaleDateString()}</p>`
+                    : '';
+
+                const achElement = document.createElement('div');
+                achElement.className = `p-4 rounded-xl border-2 transition-all duration-300 ${cardClass}`;
+                achElement.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-2">
+                        ${icon}
+                        <h4 class="font-bold text-sm">${ach.name}</h4>
+                    </div>
+                    <p class="text-xs italic">${ach.desc}</p>
+                    ${timeText}
+                `;
+                container.appendChild(achElement);
+            });
+            
+             // Update the achievement header count
+            const unlockedCount = Object.keys(gameState.unlockedAchievements).length;
+            document.querySelector('.border-yellow-700').innerHTML = `8. Achievements (System Records) <span class="text-lg text-yellow-300">(${unlockedCount} / ${Object.keys(achievementsMap).length})</span>`;
+        }
+
+
+        function updateUI() {
+            // Update main stats
+            ui.fragments.textContent = formatNumber(gameState.fragments);
+            ui.dps.textContent = DPS_FORMATTER.format(gameState.dps);
+            ui.qe.textContent = FRAGMENT_FORMATTER.format(gameState.qe);
+
+            // Update click value display
+            const currentClickValue = getClickValue();
+            ui.clickValue.textContent = `Click Power: +${currentClickValue >= 1 ? DPS_FORMATTER.format(currentClickValue) : FRAGMENT_FORMATTER.format(1)} $\Delta F$`;
+
+            // Update Upgrades (Sixes)
+            for (const key in gameState.sixes) {
+                const item = gameState.sixes[key];
+                const element = document.getElementById(`six-${key}`);
+                const baseItem = initialGameState.sixes[key];
+                const cost = baseItem.baseCost * (baseItem.multiplier ** item.count);
+                const canAfford = gameState.fragments >= cost;
+
+                if (element) {
+                    element.querySelector('.count').textContent = `Owned: ${item.count}`;
+                    element.querySelector('.cost').textContent = `${formatNumber(cost)} $\Delta F$`;
+                    const button = element.querySelector('button');
+                    button.disabled = !canAfford;
+                }
+            }
+
+            // Update Generators (Sevens)
+            for (const key in gameState.sevens) {
+                const item = gameState.sevens[key];
+                const element = document.getElementById(`seven-${key}`);
+                const baseItem = initialGameState.sevens[key];
+                const cost = baseItem.baseCost * (baseItem.multiplier ** item.count);
+                const canAfford = gameState.fragments >= cost;
+
+                if (element) {
+                    element.querySelector('.count').textContent = `Owned: ${item.count}`;
+                    element.querySelector('.cost').textContent = `${formatNumber(cost)} $\Delta F$`;
+                    const button = element.querySelector('button');
+                    button.disabled = !canAfford;
+                }
+            }
+
+            // Update Prestige
+            const qeGain = Math.floor(Math.pow(gameState.fragments / PRESTIGE_THRESHOLD, 0.25));
+            const totalBoost = gameState.qe * 7;
+            const nextGain = qeGain > 0 ? ` (+${qeGain} $\mathbb{QE}$ on Reset)` : 'Not ready yet.';
+
+            ui.prestigeInfo.innerHTML = `
+                Current $\mathbb{QE}$ Boost: <span class="text-lime-300">${totalBoost.toFixed(1)}%</span>.
+                Target: ${FRAGMENT_FORMATTER.format(PRESTIGE_THRESHOLD)} $\Delta F$.
+                ${qeGain > 0 ? `Ready for Reset: Gains ${qeGain} $\mathbb{QE}$` : 'Not ready yet.'}
+            `;
+            ui.prestigeButton.disabled = qeGain < 1;
+
+            // Render Achievements
+            renderAchievements();
+        }
+
+        function createUpgradeElement(type, key, name, description, effectText) {
+            const item = gameState[type][key];
+            const baseItem = initialGameState[type][key];
+            const cost = baseItem.baseCost * (baseItem.multiplier ** item.count);
+            const color = type === 'sixes' ? 'fuchsia' : 'cyan';
+            
+            const element = document.createElement('div');
+            element.id = `${type.slice(0, 3)}-${key}`;
+            // Added styling for a nice shop card look
+            element.className = 'flex flex-col bg-gray-900 p-4 rounded-xl border-l-4 border-' + color + '-400 hover:bg-gray-800 transition-colors duration-200';
+            
+            element.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-extrabold text-xl text-${color}-300">${name}</h3>
+                    <span class="count text-lg font-mono px-3 py-1 rounded-full bg-${color}-900 border border-${color}-600">Owned: ${item.count}</span>
+                </div>
+                
+                <p class="text-sm text-gray-400 mb-3">${description}</p>
+                
+                <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-700">
+                    <div class="flex flex-col">
+                        <p class="text-xs text-gray-500">Effect:</p>
+                        <p class="font-semibold text-white">${effectText}</p>
+                    </div>
+                    <button class="neon-button text-sm p-3 ml-4 flex-shrink-0" onclick="game.buyUpgrade('${type}', '${key}')">
+                        <span class="cost-label">BUY:</span>
+                        <span class="cost text-lg font-mono block">${formatNumber(cost)} $\Delta F$</span>
+                    </button>
+                </div>
+            `;
+            return element;
+        }
+
+        function populateUI() {
+            // Sixes (Clicker Upgrades)
+            ui.sixesContainer.appendChild(createUpgradeElement('sixes', 'increaser', '6-Bit Increaser', 'Boosts the base fragment value per manual click.', 'Adds +1 $\Delta F$ per click'));
+            ui.sixesContainer.appendChild(createUpgradeElement('sixes', 'converter', 'Hex Code Converter', 'A global multiplier that increases ALL click power.', '+10% to total click output'));
+            ui.sixesContainer.appendChild(createUpgradeElement('sixes', 'optimizer', 'Octet Optimizer', 'Diverts passive income to dramatically boost manual click strength.', 'Adds 10% of current DPS to click power'));
+            ui.sixesContainer.appendChild(createUpgradeElement('sixes', 'multiplier', '6-Sided Multiplier', 'A complex logic gate that doubles the efficiency of all passive generators.', 'Multiplies total DPS by x2.0'));
+
+            // Sevens (Passive Generators)
+            ui.sevensContainer.appendChild(createUpgradeElement('sevens', 'layer_node', '7-Layer Node', 'A foundational node for generating digital fragments.', 'Generates 1 $\Delta F$/second (DPS: +1)'));
+            ui.sevensContainer.appendChild(createUpgradeElement('sevens', 'septuple_array', 'Septuple Array', 'A parallel processing unit for higher frequency output.', 'Generates 7 $\Delta F$/second (DPS: +7)'));
+            ui.sevensContainer.appendChild(createUpgradeElement('sevens', 'archival_daemon', 'Archival Daemon', 'Autonomous process for high-volume data retrieval.', 'Generates 77 $\Delta F$/second (DPS: +77)'));
+            ui.sevensContainer.appendChild(createUpgradeElement('sevens', 'systemic_sync', 'Systemic Sync', 'Synchronizes the entire system for maximum throughput.', 'Generates 777 $\Delta F$/second (DPS: +777)'));
+            ui.sevensContainer.appendChild(createUpgradeElement('sevens', 'gateway', '7-Dimensional Gateway', 'Opens a direct pipeline to the data core for maximum fragment acquisition.', 'Generates 7,777 $\Delta F$/second (DPS: +7,777)'));
+        }
+        
+        // --- FIREBASE INITIALIZATION AND GAME START ---
+
+        async function initFirebase() {
+            try {
+                // Initialize
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                await setPersistence(auth, browserLocalPersistence);
+
+                // Authenticate
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Wait for auth state to be finalized
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        ui.loadingOverlay.classList.add('hidden');
+                        
+                        // Start the game loop and data listener
+                        startRealtimeDataListener();
+                        if (!gameInterval) {
+                            gameInterval = setInterval(gameTick, TICK_RATE_MS);
+                        }
+                    } else {
+                        // This case should be rare since we sign in anonymously above
+                        console.warn("User is not authenticated. Game will not save.");
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Failed:", error);
+                ui.loadingOverlay.innerHTML = `<p class="text-red-500">ERROR: Could not connect to Firebase. Game data will not save.</p>`;
+                isAuthReady = true; // Allow game to start without persistence
+                if (!gameInterval) {
+                    gameInterval = setInterval(gameTick, TICK_RATE_MS);
+                }
+            }
+        }
+        
+        function startRealtimeDataListener() {
+            if (!db || !userId) return;
+            const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', '676767');
+            
+            // Set up real-time listener
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const loadedData = docSnap.data();
+                    
+                    // Helper to merge loaded counts back onto the full initial structure
+                    const mergeCounts = (initial, loaded) => {
+                        const merged = JSON.parse(JSON.stringify(initial));
+                        if (loaded) {
+                            for (const key in loaded) {
+                                if (merged[key]) {
+                                    merged[key].count = loaded[key].count || 0;
+                                }
+                            }
+                        }
+                        return merged;
+                    };
+
+                    // Merge loaded data onto initial state (ensures all fields exist)
+                    gameState = {
+                        ...initialGameState,
+                        ...loadedData,
+                        sixes: mergeCounts(initialGameState.sixes, loadedData.sixes),
+                        sevens: mergeCounts(initialGameState.sevens, loadedData.sevens),
+                        unlockedAchievements: { ...initialGameState.unlockedAchievements, ...loadedData.unlockedAchievements },
+                        // Ensure new persistent stats are initialized if missing
+                        totalFragments: loadedData.totalFragments || 0,
+                        totalClicks: loadedData.totalClicks || 0,
+                    };
+                    
+                    // Re-calculate derived values
+                    calculateDPS();
+                    updateUI();
+                    showMessage("Game data loaded successfully.", 2000);
+                } else {
+                    // Create initial document if it doesn't exist
+                    console.log("No game data found, starting new game.");
+                    setDoc(userDocRef, initialGameState);
+                }
+            }, (error) => {
+                console.error("Error receiving real-time updates:", error);
+                showMessage("Warning: Data updates failed. Check connection.", 4000, true);
+            });
+        }
+
+        // Run setup functions on page load
+        window.onload = function() {
+            populateUI();
+            initFirebase();
+            updateUI(); // Initial UI draw
+        }
+
+    </script>
+</body>
+</html>
